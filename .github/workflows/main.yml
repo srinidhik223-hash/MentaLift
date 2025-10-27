@@ -21,10 +21,11 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y python3-pip git zip unzip openjdk-17-jdk wget
+          sudo apt install -y python3-pip git zip unzip openjdk-17-jdk wget libffi-dev libssl-dev
+          pip install --upgrade pip
           pip install buildozer cython virtualenv
 
-      - name: Install Android SDK + cmdline tools
+      - name: Install Android SDK + cmdline tools (with AIDL)
         run: |
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           mkdir -p $ANDROID_HOME/cmdline-tools
@@ -35,12 +36,21 @@ jobs:
           rm cmdline-tools.zip
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses
-          yes | sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0" "extras;google;m2repository" "extras;android;m2repository"
+          yes | sdkmanager --sdk_root=$ANDROID_HOME \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmdline-tools;latest" \
+            "extras;google;m2repository" \
+            "extras;android;m2repository" \
+            "platforms;android-33" \
+            "build-tools;33.0.2"
 
-      - name: Patch Buildozer SDK path (important)
+      - name: Patch Buildozer SDK path (for backward compatibility)
         run: |
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          ln -sf $HOME/.buildozer/android/platform/android-sdk/platform-tools/aidl ~/.buildozer/android/platform/android-sdk/tools/bin/aidl || true
 
       - name: Build APK
         run: |
@@ -54,4 +64,5 @@ jobs:
         with:
           name: MentaLift-APK
           path: bin/*.apk
+
 
