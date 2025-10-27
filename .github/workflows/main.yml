@@ -1,5 +1,3 @@
-mkdir -p .github/workflows
-cat > .github/workflows/android.yml <<'YAML'
 name: Build Android APK
 
 on:
@@ -52,7 +50,7 @@ jobs:
           path: |
             bin/*.apk
             ./.buildozer/android/platform/build-*/dists/**/*.apk
-YAML
+
 
 
 
