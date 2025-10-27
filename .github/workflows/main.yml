@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  PATH: $HOME/.local/bin:${{ env.PATH }}
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -14,15 +17,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        run: sudo apt-get update && sudo apt-get install -y openjdk-11-jdk
+      - name: Install system packages (git, unzip, zip, build tools)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git build-essential zip unzip openjdk-11-jdk
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Ensure $HOME/.local/bin is on PATH and show environment
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "PATH=$PATH"
+          python3 --version
+          python3 -m pip --version
 
       - name: Install Python tools and buildozer
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           python3 -m pip install --upgrade pip setuptools wheel
           python3 -m pip install --user buildozer cython==0.29.34
-          export PATH=$HOME/.local/bin:$PATH
-          buildozer --version
+          echo "Installed packages:"
+          python3 -m pip show buildozer || true
+          python3 -m pip show cython || true
+          echo "Which buildozer binary:"
+          which buildozer || ls -la $HOME/.local/bin || true
+          buildozer --version || true
 
       - name: Ensure buildozer spec is present
         run: |
@@ -31,7 +53,7 @@ jobs:
 
       - name: Clean previous build artifacts
         run: |
-          export PATH=$HOME/.local/bin:$PATH
+          export PATH="$HOME/.local/bin:$PATH"
           buildozer android clean || true
           rm -rf ./.buildozer || true
 
@@ -39,7 +61,7 @@ jobs:
         env:
           PATH: ${{ env.PATH }}:$HOME/.local/bin
         run: |
-          export PATH=$HOME/.local/bin:$PATH
+          export PATH="$HOME/.local/bin:$PATH"
           buildozer -v android debug
 
       - name: Upload APK artifact
@@ -50,8 +72,6 @@ jobs:
           path: |
             bin/*.apk
             ./.buildozer/android/platform/build-*/dists/**/*.apk
-
-
 
 
 
