@@ -1,45 +1,51 @@
-
-name: Build APK using Buildozer
+name: Build MentaLift APK
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip git zip unzip openjdk-17-jdk wget
-        pip install buildozer cython
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip git zip unzip openjdk-17-jdk wget
+          pip install buildozer cython virtualenv
 
-    - name: Install Android SDK + AIDL tools
-      run: |
-        mkdir -p ~/.buildozer/android/platform
-        cd ~/.buildozer/android/platform
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdtools.zip
-        unzip cmdtools.zip -d android-sdk
-        mkdir -p android-sdk/cmdline-tools/latest
-        mv android-sdk/cmdline-tools/* android-sdk/cmdline-tools/latest/ || true
-        yes | android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=android-sdk --licenses
-        yes | android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=android-sdk \
-          "platform-tools" "platforms;android-33" "build-tools;33.0.2" "emulator" "extras;android;m2repository" "system-images;android-33;default;x86_64" "aidl"
+      - name: Install Android SDK + Build Tools (AIDL included)
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          cd ~/.buildozer/android/platform
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip -d android-sdk
+          mkdir -p android-sdk/cmdline-tools/latest
+          mv android-sdk/cmdline-tools/* android-sdk/cmdline-tools/latest/ || true
+          yes | android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=android-sdk --licenses
+          yes | android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=android-sdk \
+            "platform-tools" "platforms;android-34" "build-tools;34.0.0" "cmdline-tools;latest"
 
-    - name: Build APK
-      run: |
-        export ANDROIDSDK=$HOME/.buildozer/android/platform/android-sdk
-        export ANDROIDNDK=$ANDROIDSDK/ndk/25.2.9519653
-        export PATH=$PATH:$ANDROIDSDK/platform-tools:$ANDROIDSDK/cmdline-tools/latest/bin:$HOME/.local/bin
-        buildozer android debug
+      - name: Build APK using Buildozer
+        run: |
+          export ANDROIDSDK=$HOME/.buildozer/android/platform/android-sdk
+          export PATH=$PATH:$ANDROIDSDK/platform-tools:$ANDROIDSDK/cmdline-tools/latest/bin:$HOME/.local/bin
+          buildozer android debug
+
+      - name: Upload generated APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MentaLift-APK
+          path: bin/*.apk
+
